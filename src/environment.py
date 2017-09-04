@@ -7,7 +7,7 @@ class Environment:
 
 	def __init__(self, dimension, rechargePoints, trashCans):
 		self.dimension = dimension
-		self.trashPercentage = random.randint(40, 85)
+		self.dirtPercentage = random.randint(40, 85)
 		self.dirt = 0
 		self.rechargePoints = rechargePoints
 		self.trashCans = trashCans
@@ -35,7 +35,11 @@ class Environment:
 	
 		self.allocate_points_of_interest()
 
+	# Allocate trash cans, recharge points and dirt
 	def allocate_points_of_interest(self):
+		totalPositions = self.dimension * self.dimension
+		occupiedPositions = 1
+
 		aux = 0
 		while aux < self.rechargePoints:
 			i = random.randint(3, (self.dimension - 4))
@@ -54,6 +58,7 @@ class Environment:
 			if self.matrix[i][j] == " ":
 				aux = aux + 1
 				self.matrix[i][j] = "R"
+				occupiedPositions += 1
 
 		aux = 0
 		while aux < self.trashCans:
@@ -73,11 +78,14 @@ class Environment:
 			if self.matrix[i][j] == " ":
 				aux = aux + 1
 				self.matrix[i][j] = "T"
+				occupiedPositions += 1
 
-		self.dirt = math.floor((self.trashPercentage * (self.dimension * self.dimension)) /  100)
+		self.dirt = math.floor((self.dirtPercentage * (totalPositions - occupiedPositions)) /  100)
 
-		print(self.trashPercentage)
-		print(self.dirt)
+		print("\nTotal positions in matrix: " + str(totalPositions))
+		print("Occupied positions in matrix: " + str(occupiedPositions))
+		print("Dirt percentage: " + str(self.dirtPercentage) + "%")
+		print("Number of dirt positions: " + str(self.dirt))
 
 		aux = 0
 		while aux < self.dirt:
@@ -88,8 +96,23 @@ class Environment:
 				self.matrix[i][j] = "d"
 				aux = aux + 1
 	
-	def run_env(self):
-		self.agent.go_through_environment(self)
+	def valid_move(self, direction):
+		new_x = self.agent.x + (direction.x)
+		new_y = self.agent.y + (direction.y)
+
+		if (new_x >= 0 and new_y >= 0 and
+			new_x < self.dimension and 
+			new_y < self.dimension):
+			
+			if (self.matrix[new_x][new_y] != "W" and
+				self.matrix[new_x][new_y] != "R" and
+				self.matrix[new_x][new_y] != "T"):
+
+				return new_x, new_y
+			else:
+				return None
+
+		return None
 
 	def print_env(self):
 		print("\n\nX X", end=" ")
@@ -111,7 +134,7 @@ class Environment:
 
 class Direction(enum.Enum):
 	NORTH 		= (0, -1)
-	SOUTH 		= (0,1)
+	SOUTH 		= (0, 1)
 	EAST		= (1, 0)
 	WEST		= (-1, 0) 
 	NORTHEAST 	= (1, -1)
