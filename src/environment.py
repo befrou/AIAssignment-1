@@ -1,7 +1,6 @@
 import random
 import math
-import agent
-import enum
+import direction
 
 class Environment:
 
@@ -11,33 +10,41 @@ class Environment:
 		self.dirt = 0
 		self.rechargePoints = rechargePoints
 		self.trashCans = trashCans
-		self.matrix = [[" " for i in range(dimension)] for j in range(dimension)]
-		self.agent = agent.Agent(0, 0, 0, 0)
+		self.matrix = [None] * (self.dimension * self.dimension)
+		self.recharge_points = []
+		self.trashcans_points = []
 
-	def generate_env(self):
-		self.matrix[0][0] = "A"
-		for i in range(self.dimension):
-			for j in range(self.dimension):
-				if i == 2:
-					if j == 2  or j == 3:
-						self.matrix[i][j] = "W"
-					if j == (self.dimension - 3)  or j == (self.dimension - 4):
-						self.matrix[i][j] = "W"
+	def get_cell(self, x, y):
+		return self.matrix[self.get_array_position(x, y)]
 
-				elif i == self.dimension - 3:
-					if j == 2  or j == 3:
-						self.matrix[i][j] = "W"
-					if j == (self.dimension - 3)  or j == (self.dimension - 4):
-						self.matrix[i][j] = "W"
-				elif i >= 2 and i <= (self.dimension - 3):
-					if j == 3 or j == (self.dimension - 4):
-						self.matrix[i][j] = "W"
+	def forbidden_cell(self):
+		return ["W", "T", "R"]
+
+	def get_dimension(self):
+		return self.dimension
 	
-		self.allocate_points_of_interest()
+	def calculate_initial_capacity(self):
+		return int(round(pow(self.dimension, 2) * 0.8, 2) / 2)
+	
+	def get_cell_content(self, x, y):
+		return self.matrix[self.get_array_position(x, y)]
+	
+	def cell_is_dirty(self, x, y):
+		return self.matrix[self.get_array_position(x, y)] == "d"
+	
+	def get_recharge_points(self):
+		return self.recharge_points
+	
+	def get_trash_can_points(self):
+		return self.trashcans_points
+
+	def set_cell_content(self, x, y, content):
+		position = self.get_array_position(x, y)
+		self.matrix[position].set_content(content)
 
 	# Allocate trash cans, recharge points and dirt
 	def allocate_points_of_interest(self):
-		totalPositions = self.dimension * self.dimension
+		totalPositions = pow(self.dimension, 2)
 		occupiedPositions = 1
 
 		aux = 0
@@ -54,10 +61,12 @@ class Environment:
 				j_end = self.dimension - 1
 
 			j = random.randint(j_ini, j_end)
+			position = self.get_array_position(i, j)
 
-			if self.matrix[i][j] == " ":
+			if self.matrix[position].get_content() == " ":
 				aux = aux + 1
-				self.matrix[i][j] = "R"
+				self.matrix[position].set_content("R")
+				self.recharge_points.append((i, j))
 				occupiedPositions += 1
 
 		aux = 0
@@ -74,11 +83,16 @@ class Environment:
 				j_end = self.dimension - 1
 
 			j = random.randint(j_ini, j_end)
+			position = self.get_array_position(i, j)
 
-			if self.matrix[i][j] == " ":
+			if self.matrix[position].get_content() == " ":
 				aux = aux + 1
-				self.matrix[i][j] = "T"
+				self.matrix[position].set_content("T")
+				self.trashcans_points.append((i, j))
 				occupiedPositions += 1
+
+		walls = (4 + (self.dimension - 4) * 2)
+		occupiedPositions += walls
 
 		self.dirt = math.floor((self.dirtPercentage * (totalPositions - occupiedPositions)) /  100)
 
@@ -92,30 +106,62 @@ class Environment:
 			i = random.randint(0, self.dimension - 1)
 			j = random.randint(0, self.dimension - 1)
 
-			if self.matrix[i][j] == " ":
-				self.matrix[i][j] = "d"
+			position = self.get_array_position(i, j)
+
+			if self.matrix[position].get_content() == " ":
+				self.matrix[position].set_content("d")
 				aux = aux + 1
-	
-	def valid_move(self, direction):
-		new_x = self.agent.x + (direction.x)
-		new_y = self.agent.y + (direction.y)
 
-		if (new_x >= 0 and new_y >= 0 and
-			new_x < self.dimension and 
-			new_y < self.dimension):
-			
-			if (self.matrix[new_x][new_y] != "W" and
-				self.matrix[new_x][new_y] != "R" and
-				self.matrix[new_x][new_y] != "T"):
+	def generate_env(self):
+		directions = list(direction.Direction)
+		for i in range(self.dimension):
+			for j in range(self.dimension):
+				position = self.get_array_position(i, j)
+				content = self.get_position_content(i, j)
+				
+				self.matrix[position] = Cell(i, j, content)	
 
-				return new_x, new_y
-			else:
-				return None
+		for i in range(self.dimension):
+			for j in range(self.dimension):
+				currPosition =  self.get_array_position(i, j)
+				currCell = self.matrix[currPosition]
 
-		return None
+				for d in directions:
+					nX = i + d.x
+					nY = j + d.y
+
+					if (nX >= 0 and nX < self.dimension and
+						nY >= 0 and nY < self.dimension):
+
+						nPosition = self.get_array_position(nX, nY)
+						currCell.add_neighbor(self.matrix[nPosition])
+		# print(self.matrix[self.get_array_position(5, 2)].get_neighbors())
+		# exit()
+		self.allocate_points_of_interest()
+
+
+	def get_array_position(self, i, j):
+		return i * (self.dimension - 1) + j
+
+	def get_position_content(self, i, j):
+		if i == 2:
+			if j == 2  or j == 3:
+				return "W"
+			if j == (self.dimension - 3)  or j == (self.dimension - 4):
+				return "W"
+
+		elif i == self.dimension - 3:
+			if j == 2  or j == 3:
+				return "W"
+			if j == (self.dimension - 3)  or j == (self.dimension - 4):
+				return "W"
+		elif i >= 2 and i <= (self.dimension - 3):
+			if j == 3 or j == (self.dimension - 4):
+				return "W"
+		return " "
 
 	def print_env(self):
-		print("\n\nX X", end=" ")
+		print("\n\nX X", end = " ")
 		for j in range(self.dimension):
 			print("X", end=" ")
 
@@ -124,7 +170,8 @@ class Environment:
 		for i in range(self.dimension):
 			print("X ", end="")
 			for j in range(self.dimension):
-				print(str(self.matrix[i][j]), end=" ")
+				position = self.get_array_position(i, j)
+				print(str(self.matrix[position].get_content()), end=" ")
 			print("X")
 
 		print("X X", end=" ")
@@ -132,16 +179,31 @@ class Environment:
 			print("X", end=" " )
 		print("\n\n")
 
-class Direction(enum.Enum):
-	NORTH 		= (0, -1)
-	SOUTH 		= (0, 1)
-	EAST		= (1, 0)
-	WEST		= (-1, 0) 
-	NORTHEAST 	= (1, -1)
-	NORTHWEST 	= (-1, -1)
-	SOUTHEAST 	= (1, 1)
-	SOUTHWEST 	= (-1, 1)
 
-	def __init__(self, x, y):
+class Cell:
+	def __init__(self, x, y, content):
 		self.x = x
 		self.y = y
+		self.parent = None
+		self.neighbors = []
+		self.content = content
+
+	def get_position(self):
+		return self.x, self.y
+
+	def get_content(self):
+		return self.content
+
+	def set_content(self, content):
+		self.content = content
+
+	def add_neighbor(self, nb):
+		self.neighbors.append(nb)
+
+	def get_neighbors(self):
+		return self.neighbors
+
+if __name__ == "__main__":
+    env = Environment(15, 3, 3)
+    env.generate_env()
+    env.print_env()
