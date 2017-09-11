@@ -1,6 +1,7 @@
 import environment
 import agent
-from astar import Astar
+from heapq import heappush, heappop
+from itertools import count
 
 class Simulator:
 
@@ -12,6 +13,14 @@ class Simulator:
         self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
 
     def go_through_environment(self):
+        source = self.envInstance.get_cell(0, 0)
+        goal = self.envInstance.get_cell(14, 14)
+
+        path = self.astar(source, goal)
+        
+        for a in path:
+            print(a.get_position())
+        exit()
 
         stack = []
 
@@ -95,9 +104,56 @@ class Simulator:
     def heuristic(self, posX, posY, goalX, goalY):
         return abs(goalX - posX) + abs(goalY - posY)
 
+    def astar(self, start, goal):
+        visited = {}
+        computedInfo = {}
+
+        push = heappush
+        pop = heappop
+
+        c = count()
+        queue = [(0, next(c), start, 0, None)]
+
+        while queue:
+            # Pop the smallest item from queue.
+            _, __, current, dist, previous = pop(queue)
+
+            if current == goal:
+                path = [current]
+                cell = previous
+                while cell is not None:
+                    path.append(cell)
+                    cell = visited[cell]
+                path.reverse()
+                return path
+
+            if current in visited:
+                continue
+
+            visited[current] = previous
+
+            for neighbor in current.get_neighbors():
+                if (neighbor in visited or 
+                    neighbor.get_content() in self.envInstance.forbidden_cell()):
+                    continue
+
+                neighborCost = dist + 1
+                if neighbor in computedInfo:
+                    prevCost, h = computedInfo[neighbor]
+
+                    if prevCost <= neighborCost:
+                        continue
+                else:
+                    h = self.heuristic(neighbor.x, neighbor.y, goal.x, goal.y)
+                
+                computedInfo[neighbor] =  neighborCost, h
+                push(queue, (neighborCost + h, next(c), neighbor, neighborCost, current))
+
+
+
+
 if __name__ == "__main__":
     sim = Simulator()
-    
     sim.envInstance.print_env()
     sim.go_through_environment()
     sim.envInstance.print_env()
