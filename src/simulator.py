@@ -1,6 +1,7 @@
 import environment
 import agent
 import sys
+import time
 from heapq import heappush, heappop
 from itertools import count
 
@@ -242,7 +243,9 @@ if __name__ == "__main__":
         print("Error. The energy and capacity values must be greater than zero.")
         exit()
 
+    start_time = time.time()
     sim = Simulator(agentEnergy, agentCapacity)
     sim.envInstance.print_env()
     sim.go_through_environment()
     sim.envInstance.print_env()
+    print("Hey! I finished my job in %s seconds. :)" % round(float(time.time() - start_time), 3))
