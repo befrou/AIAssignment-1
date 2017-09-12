@@ -206,8 +206,3 @@ class Cell:
 	def print_neighbors(self):
 		for f in self.neighbors:
 			print(f.get_position())
-
-if __name__ == "__main__":
-    env = Environment(10, 3, 3)
-    env.generate_env()
-    env.print_env()

@@ -7,8 +7,8 @@ from itertools import count
 
 class Simulator:
 
-    def __init__(self, agentEnergy, agentCapacity, dimension):
-        self.envInstance = environment.Environment(dimension, 4, 4)
+    def __init__(self, agentEnergy, agentCapacity, dimension, rechargePoints, trashCanPoints):
+        self.envInstance = environment.Environment(dimension, rechargePoints, trashCanPoints)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
         self.agent = agent.Agent(0, 0, agentEnergy, agentCapacity)
@@ -238,14 +238,16 @@ class Simulator:
 
 if __name__ == "__main__":
 
-    if len(sys.argv) < 4:
-        print("Invalid command. Try this: python3 simulator.py energy capacity dimension")
+    if len(sys.argv) < 5:
+        print("Invalid command. Try this: python3 simulator.py energy capacity dimension rechargePoints trashcanPoints")
         exit()
 
     try:
         agentEnergy = int(sys.argv[1])
         agentCapacity = int(sys.argv[2])
         dimension = int(sys.argv[3])
+        rechargePoints = int(sys.argv[4])
+        trashCanPoints = int(sys.argv[5])
     except:
         print("Error. The energy, capacity and dimension values must be a number.")
         exit()
@@ -256,11 +258,11 @@ if __name__ == "__main__":
 
     # (+ 6) Because the energy limit is based on the (dimension + 5). So the agent needs at least 1 energy
     if agentEnergy < (dimension + 6):
-        print("The agent must be greater than the size of the map + 5 (Energy Limit).")
+        print("The agent energy must be greater than the size of the map + 5 (Energy Limit).")
         exit()
 
     start_time = time.time()
-    sim = Simulator(agentEnergy, agentCapacity, dimension)
+    sim = Simulator(agentEnergy, agentCapacity, dimension, rechargePoints, trashCanPoints)
     sim.envInstance.print_env()
     sim.go_through_environment()
     sim.envInstance.print_env()
