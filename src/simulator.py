@@ -6,7 +6,7 @@ from itertools import count
 class Simulator:
 
     def __init__(self):
-        self.envInstance = environment.Environment(8, 4, 4)
+        self.envInstance = environment.Environment(10, 4, 4)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
         self.agent = agent.Agent(0, 0, 30, 10)
@@ -48,15 +48,23 @@ class Simulator:
             self.visitedCells[currX][currY] = True
 
             currCell = self.envInstance.get_cell(currX, currY)
-            neighbors = currCell.get_neighbors()
             
             if self.envInstance.cell_is_dirty(currX, currY):
                 if self.agent.has_capacity():
                     # Clean cell
                     self.envInstance.set_cell_content(currX, currY, " ")
-                    # self.agent.decrease_capacity()
-            
-  
+                    self.agent.decrease_capacity()
+                else:
+                    goalCoord = self.get_nearbiest_trash_can_point()
+                    goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])    
+
+                    aux = self.astar(currCell, goal)
+                    for a in aux:
+                        print(a.get_position())
+                    exit()               
+
+            neighbors = currCell.get_neighbors()
+
             for nbCell in neighbors:
                 nbX, nbY = nbCell.get_position()
 
@@ -94,7 +102,7 @@ class Simulator:
     def get_shortest_distance_to_trash_can(self):
         trashCanPoints = self.envInstance.get_trash_can_points()
 
-        firstPoint = self.trashCanPoints[0]
+        firstPoint = trashCanPoints[0]
         bestValue = self.heuristic(self.agent.x, self.agent.y, firstPoint[0], firstPoint[1])
 
         for point in trashCanPoints:
@@ -106,7 +114,7 @@ class Simulator:
 
     def get_nearbiest_recharge_point(self):
         values = {}
-        rechargePoints = envInstance.get_recharge_points()
+        rechargePoints = self.envInstance.get_recharge_points()
 
         for point in rechargePoints:
             values[self.heuristic(self.agent.x, self.agent.y, point[0], point[1])] = (point[0], point[1])
@@ -150,10 +158,12 @@ class Simulator:
                 continue
 
             visited[current] = previous
-
             for neighbor in current.get_neighbors():
-                if (neighbor in visited or 
+                if (neighbor == goal):
+                    pass
+                elif (neighbor in visited or
                     neighbor.get_content() in self.envInstance.forbidden_cell()):
+                    
                     continue
 
                 neighborCost = dist + 1
