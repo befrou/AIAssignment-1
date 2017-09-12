@@ -30,7 +30,7 @@ class Environment:
 		return self.matrix[self.get_array_position(x, y)]
 	
 	def cell_is_dirty(self, x, y):
-		return self.matrix[self.get_array_position(x, y)] == "d"
+		return self.matrix[self.get_array_position(x, y)].get_content() == "d"
 	
 	def get_recharge_points(self):
 		return self.recharge_points
@@ -126,22 +126,22 @@ class Environment:
 				currPosition =  self.get_array_position(i, j)
 				currCell = self.matrix[currPosition]
 
+				x, y = currCell.get_position()
 				for d in directions:
-					nX = i + d.x
-					nY = j + d.y
+					nX = x + d.x
+					nY = y + d.y
 
 					if (nX >= 0 and nX < self.dimension and
 						nY >= 0 and nY < self.dimension):
 
 						nPosition = self.get_array_position(nX, nY)
 						currCell.add_neighbor(self.matrix[nPosition])
-		# print(self.matrix[self.get_array_position(5, 2)].get_neighbors())
-		# exit()
+
 		self.allocate_points_of_interest()
 
 
 	def get_array_position(self, i, j):
-		return i * (self.dimension - 1) + j
+		return (i * (self.dimension)) + j
 
 	def get_position_content(self, i, j):
 		if i == 2:
@@ -203,7 +203,11 @@ class Cell:
 	def get_neighbors(self):
 		return self.neighbors
 
+	def print_neighbors(self):
+		for f in self.neighbors:
+			print(f.get_position())
+
 if __name__ == "__main__":
-    env = Environment(15, 3, 3)
+    env = Environment(10, 3, 3)
     env.generate_env()
-    env.print_env()
+    # env.print_env()
