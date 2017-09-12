@@ -1,15 +1,16 @@
 import environment
 import agent
+import sys
 from heapq import heappush, heappop
 from itertools import count
 
 class Simulator:
 
-    def __init__(self):
+    def __init__(self, agentEnergy, agentCapacity):
         self.envInstance = environment.Environment(10, 4, 4)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
-        self.agent = agent.Agent(0, 0, 100, 5)
+        self.agent = agent.Agent(0, 0, agentEnergy, agentCapacity)
         self.agent.set_limit_energy(self.envInstance.dimension + 5)
         # self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
 
@@ -23,13 +24,13 @@ class Simulator:
 
             currX, currY = self.agent.get_position()
             currCell = self.envInstance.get_cell(currX, currY)
-            
+
             if self.agent.energy > self.agent.energyLimit:
-                
+
                 self.agent.decrease_energy()
                 print ("My Energy: " + str(self.agent.energy))
                 self.visitedCells[currX][currY] = True
-                
+
                 if self.envInstance.cell_is_dirty(currX, currY):
                     if self.agent.has_capacity():
                         # Clean cell
@@ -37,11 +38,11 @@ class Simulator:
                         self.agent.decrease_capacity()
                     else:
                         goalCoord = self.get_nearbiest_trash_can_point()
-                        goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])    
+                        goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])
 
                         #Run A* algorithm and move the agent to nearbiest trashcan
                         pathToTrashCan = self.astar(currCell, goal)
-   
+
                         for cell in pathToTrashCan:
                             #If is a trashcan point drop the dirt and fill the capacity
                             if cell.get_content() == "T":
@@ -50,25 +51,25 @@ class Simulator:
                             else:
                                 self.agent.set_position(cell.x, cell.y)
                                 self.agent.decrease_energy()
-                        
+
                         #Back to previous position
                         backToPrevCoord = pathToTrashCan[::-1]
                         for cell in backToPrevCoord:
                             self.agent.set_position(cell.x, cell.y)
                             self.agent.decrease_energy()
                         #Set the agent position again
-                        newX, newY = self.agent.get_position()     
-                        
+                        newX, newY = self.agent.get_position()
+
                         #Clean the dirt and decrease the capacity
                         self.envInstance.set_cell_content(currX, currY, " ")
-                        self.agent.decrease_capacity()       
+                        self.agent.decrease_capacity()
 
                 neighbors = currCell.get_neighbors()
 
                 for nbCell in neighbors:
                     nbX, nbY = nbCell.get_position()
 
-                    if (self.visitedCells[nbX][nbY] == False and 
+                    if (self.visitedCells[nbX][nbY] == False and
                         nbCell.get_content() not in self.envInstance.forbidden_cell()):
 
                         allVisited = False
@@ -78,7 +79,7 @@ class Simulator:
                         self.agent.decrease_energy()
 
                         break
-                
+
                 # Go back to previous cell
                 if allVisited is True:
                     prevCell = stack.pop()
@@ -127,7 +128,7 @@ class Simulator:
             if (auxValue < bestValue):
                 bestValue = auxValue
         return bestValue
-    
+
     def get_shortest_distance_to_trash_can(self):
         trashCanPoints = self.envInstance.get_trash_can_points()
 
@@ -192,7 +193,7 @@ class Simulator:
                     pass
                 elif (neighbor in visited or
                     neighbor.get_content() in self.envInstance.forbidden_cell()):
-                    
+
                     continue
 
                 neighborCost = dist + 1
@@ -203,7 +204,7 @@ class Simulator:
                         continue
                 else:
                     h = self.heuristic(neighbor.x, neighbor.y, goal.x, goal.y)
-                
+
                 computedInfo[neighbor] =  neighborCost, h
                 push(queue, (neighborCost + h, next(c), neighbor, neighborCost, current))
 
@@ -211,7 +212,23 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    sim = Simulator()
+
+    if len(sys.argv) < 3:
+        print("Invalid command. Try this: python3 simulator.py energy capacity")
+        exit()
+
+    try:
+        agentEnergy = int(sys.argv[1])
+        agentCapacity = int(sys.argv[2])
+    except:
+        print("Error. The energy and capacity values must be a number.")
+        exit()
+
+    if agentEnergy <= 0 or agentCapacity <= 0:
+        print("Error. The energy and capacity values must be greater than zero.")
+        exit()
+
+    sim = Simulator(agentEnergy, agentCapacity)
     sim.envInstance.print_env()
     sim.go_through_environment()
     sim.envInstance.print_env()
