@@ -6,21 +6,36 @@ from itertools import count
 class Simulator:
 
     def __init__(self):
-        self.envInstance = environment.Environment(30, 4, 4)
+        self.envInstance = environment.Environment(8, 4, 4)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
-        self.agent = agent.Agent(0, 0, 100, self.envInstance.calculate_initial_capacity())
-        self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
+        self.agent = agent.Agent(0, 0, 30, 10)
+        # self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
+
+    def print_o(self):
+        print("\n\nX X", end = " ")
+        for j in range(self.envInstance.dimension):
+            print("X", end=" ")
+
+        print("")
+
+        for i in range(self.envInstance.dimension):
+            print("X ", end="")
+            for j in range(self.envInstance.dimension):
+                if (i, j) == self.agent.get_position():
+                    print("A", end=" ")
+                else:    
+                    position = self.envInstance.get_array_position(i, j)
+                    print(str(self.envInstance.matrix[position].get_content()), end=" ")
+            print("X")
+
+        print("X X", end=" ")
+        for j in range(self.envInstance.dimension):
+            print("X", end=" " )
+        print("\n\n")
+
 
     def go_through_environment(self):
-        source = self.envInstance.get_cell(0, 0)
-        goal = self.envInstance.get_cell(14, 14)
-
-        path = self.astar(source, goal)
-        
-        for a in path:
-            print(a.get_position())
-        exit()
 
         stack = []
 
@@ -30,22 +45,29 @@ class Simulator:
             flag = False
 
             currX, currY = self.agent.get_position()
+            self.visitedCells[currX][currY] = True
 
             currCell = self.envInstance.get_cell(currX, currY)
             neighbors = currCell.get_neighbors()
+            
+            if self.envInstance.cell_is_dirty(currX, currY):
+                if self.agent.has_capacity():
+                    # Clean cell
+                    self.envInstance.set_cell_content(currX, currY, " ")
+                    # self.agent.decrease_capacity()
+            
   
             for nbCell in neighbors:
                 nbX, nbY = nbCell.get_position()
 
-                if self.visitedCells[nbX][nbY] == False and nbCell.get_content() not in self.envInstance.forbidden_cell():           
+                if (self.visitedCells[nbX][nbY] == False and 
+                    nbCell.get_content() not in self.envInstance.forbidden_cell()):
+
                     allVisited = False
                     stack.append(currCell)
 
-                    self.visitedCells[nbX][nbY] = True
-                    self.envInstance.set_cell_content(currX, currY, " ")
-                    self.envInstance.set_cell_content(nbX, nbY, "A")
-
                     self.agent.set_position(nbX, nbY)
+                    self.agent.decrease_energy()
 
                     break
               
@@ -53,9 +75,6 @@ class Simulator:
             if allVisited is True:
                 prevCell = stack.pop()
                 prevX, prevY = prevCell.get_position()
-
-                self.envInstance.set_cell_content(currX, currY, " ")
-                self.envInstance.set_cell_content(prevX, prevY, "A")
                 self.agent.set_position(prevX, prevY)
 
 

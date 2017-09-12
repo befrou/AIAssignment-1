@@ -24,4 +24,4 @@ class Agent:
         self.capacity -= 1
     
     def decrease_energy(self):
-        self.energy -= 2
+        self.energy -= 1
