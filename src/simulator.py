@@ -9,96 +9,101 @@ class Simulator:
         self.envInstance = environment.Environment(10, 4, 4)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
-        self.agent = agent.Agent(0, 0, 100, 10)
+        self.agent = agent.Agent(0, 0, 100, self.envInstance.calculate_initial_capacity())
+        self.agent.set_limit_energy(self.envInstance.dimension + 5)
         # self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
 
-    def print_o(self):
-        print("\n\nX X", end = " ")
-        for j in range(self.envInstance.dimension):
-            print("X", end=" ")
-
-        print("")
-
-        for i in range(self.envInstance.dimension):
-            print("X ", end="")
-            for j in range(self.envInstance.dimension):
-                if (i, j) == self.agent.get_position():
-                    print("A", end=" ")
-                else:    
-                    position = self.envInstance.get_array_position(i, j)
-                    print(str(self.envInstance.matrix[position].get_content()), end=" ")
-            print("X")
-
-        print("X X", end=" ")
-        for j in range(self.envInstance.dimension):
-            print("X", end=" " )
-        print("\n\n")
-
-
     def go_through_environment(self):
-
         stack = []
 
         flag = True
         while stack or flag:
             allVisited = True
             flag = False
-
-            currX, currY = self.agent.get_position()
-            self.visitedCells[currX][currY] = True
-
-            currCell = self.envInstance.get_cell(currX, currY)
             
-            if self.envInstance.cell_is_dirty(currX, currY):
-                if self.agent.has_capacity():
-                    # Clean cell
-                    self.envInstance.set_cell_content(currX, currY, " ")
-                    self.agent.decrease_capacity()
-                else:
-                    goalCoord = self.get_nearbiest_trash_can_point()
-                    goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])    
+            if self.agent.energy > self.agent.energyLimit:
+                currX, currY = self.agent.get_position()
+                self.agent.decrease_energy()
+                print ("My Energy: " + str(self.agent.energy))
+                self.visitedCells[currX][currY] = True
 
-                    #Run A* algorithm and move the agent to nearbiest trashcan
-                    pathToTrashCan = self.astar(currCell, goal)
-                    for cell in pathToTrashCan:
-                        self.agent.set_position(cell.x, cell.y)
-                        #If is a trashcan point drop the dirt and fill the capacity
-                        if cell.get_content() == "T":
-                            self.agent.fill_capacity()
-                    
-                    #Back to previous position
-                    backToPrevCoord = pathToTrashCan[::-1]
-                    for cell in backToPrevCoord:
-                        self.agent.set_position(cell.x, cell.y)
-                    #Set the agent position again
-                    newX, newY = self.agent.get_position()     
-                    
-                    #Clean the dirt and decrease the capacity
-                    self.envInstance.set_cell_content(currX, currY, " ")
-                    self.agent.decrease_capacity()       
+                currCell = self.envInstance.get_cell(currX, currY)
+                
+                if self.envInstance.cell_is_dirty(currX, currY):
+                    if self.agent.has_capacity():
+                        # Clean cell
+                        self.envInstance.set_cell_content(currX, currY, " ")
+                        self.agent.decrease_capacity()
+                    else:
+                        goalCoord = self.get_nearbiest_trash_can_point()
+                        goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])    
 
-            neighbors = currCell.get_neighbors()
+                        #Run A* algorithm and move the agent to nearbiest trashcan
+                        pathToTrashCan = self.astar(currCell, goal)
+                        for cell in pathToTrashCan:
+                            self.agent.set_position(cell.x, cell.y)
+                            self.agent.decrease_energy()
+                            #If is a trashcan point drop the dirt and fill the capacity
+                            if cell.get_content() == "T":
+                                self.agent.fill_capacity()
+                        
+                        #Back to previous position
+                        backToPrevCoord = pathToTrashCan[::-1]
+                        for cell in backToPrevCoord:
+                            self.agent.set_position(cell.x, cell.y)
+                            self.agent.decrease_energy()
+                        #Set the agent position again
+                        newX, newY = self.agent.get_position()     
+                        
+                        #Clean the dirt and decrease the capacity
+                        self.envInstance.set_cell_content(currX, currY, " ")
+                        self.agent.decrease_capacity()       
 
-            for nbCell in neighbors:
-                nbX, nbY = nbCell.get_position()
+                neighbors = currCell.get_neighbors()
 
-                if (self.visitedCells[nbX][nbY] == False and 
-                    nbCell.get_content() not in self.envInstance.forbidden_cell()):
+                for nbCell in neighbors:
+                    nbX, nbY = nbCell.get_position()
 
-                    allVisited = False
-                    stack.append(currCell)
+                    if (self.visitedCells[nbX][nbY] == False and 
+                        nbCell.get_content() not in self.envInstance.forbidden_cell()):
 
-                    self.agent.set_position(nbX, nbY)
+                        allVisited = False
+                        stack.append(currCell)
+
+                        self.agent.set_position(nbX, nbY)
+                        self.agent.decrease_energy()
+
+                        break
+                
+                # Go back to previous cell
+                if allVisited is True:
+                    prevCell = stack.pop()
+                    prevX, prevY = prevCell.get_position()
+                    self.agent.set_position(prevX, prevY)
+            else:
+                goalCoord = self.get_nearbiest_recharge_point()
+                goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])
+
+                print("Battery low. My limit is " + str(self.agent.energyLimit) + " and I have " + str(self.agent.energy))
+                print("My previous position " + str(self.agent.get_position()))
+                #Run A* algorithm and move the agent to nearbiest recharge point
+                pathToRechargePoint = self.astar(currCell, goal)
+                for cell in pathToRechargePoint:
+                    self.agent.set_position(cell.x, cell.y)
                     self.agent.decrease_energy()
-
-                    break
-              
-            # Go back to previous cell
-            if allVisited is True:
-                prevCell = stack.pop()
-                prevX, prevY = prevCell.get_position()
-                self.agent.set_position(prevX, prevY)
-
+                    #If is a trashcan point drop the dirt and fill the capacity
+                    if cell.get_content() == "R":
+                        self.agent.recharge_energy()
+                print("My new energy: " + str(self.agent.energy))
+                print("My new position " + str(self.agent.get_position()))
+                #Back to previous position
+                backToPrevCoord = pathToRechargePoint[::-1]
+                for cell in backToPrevCoord:
+                    self.agent.set_position(cell.x, cell.y)
+                #Set the agent position again
+                newX, newY = self.agent.get_position()
+                print("My current position " + str(self.agent.get_position()))
+                exit()
 
     def get_shortest_distance_to_recharge(self):
         rechargePoints = self.envInstance.get_recharge_points()

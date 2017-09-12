@@ -16,7 +16,7 @@ class Agent:
         self.y = y
     
     def set_limit_energy(self, newLimit):
-        self.energyLimit = newLimit * 2
+        self.energyLimit = newLimit
 
     def has_capacity(self):
         return self.capacity > 0    
@@ -27,5 +27,8 @@ class Agent:
     def fill_capacity(self):
         self.capacity = self.originalCapacity
     
+    def recharge_energy(self):
+        self.energy = 100
+
     def decrease_energy(self):
         self.energy -= 1
