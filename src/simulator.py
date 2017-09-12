@@ -71,7 +71,11 @@ class Simulator:
                     for cell in backToPrevCoord:
                         self.agent.set_position(cell.x, cell.y)
                     #Set the agent position again
-                    newX, newY = self.agent.get_position()            
+                    newX, newY = self.agent.get_position()     
+                    
+                    #Clean the dirt and decrease the capacity
+                    self.envInstance.set_cell_content(currX, currY, " ")
+                    self.agent.decrease_capacity()       
 
             neighbors = currCell.get_neighbors()
 
