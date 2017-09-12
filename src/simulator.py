@@ -59,6 +59,12 @@ class Simulator:
 
                         #Walk to the goal
                         for cell in pathToTrashCan:
+                            #Check the energy each step while searching for a trashcan
+                            if self.agent.energy <= self.agent.energyLimit:
+                                #If energy is low, go to the nearest charging station
+                                print("Oh no. Battery is low while running into a trashcan. Going to a charging station now.")
+                                self.go_to_charging_station(currCell)
+
                             #If is a trashcan point drop the dirt and fill the capacity
                             if cell.get_content() == "T":
                                 print("Emptying my backpack at point: " + str((cell.x, cell.y)))
@@ -105,30 +111,8 @@ class Simulator:
             else:
                 print("\nBattery low. I have " + str(self.agent.energy) + " of energy remaining.")
 
-                #Find the neabiest recharge point
-                nearbiestRechargePoint = self.get_nearbiest_recharge_point()
-                rechargePoint = self.envInstance.get_cell(nearbiestRechargePoint[0], nearbiestRechargePoint[1])
+                self.go_to_charging_station(currCell)
 
-                # Run A* algorithm and move the agent to nearbiest recharge point
-                pathToRechargePoint = self.astar(currCell, rechargePoint)
-
-                #Walk to the goal
-                for cell in pathToRechargePoint:
-                    # If is a recharge point recharge the agent energy
-                    if cell.get_content() == "R":
-                        print("Recharging my energy at point: " + str((cell.x, cell.y)))
-                        self.agent.recharge_energy()
-                    else:
-                        self.agent.set_position(cell.x, cell.y)
-                        self.agent.decrease_energy()
-
-                #Back to previous position
-                backToPrevCoord = pathToRechargePoint[::-1]
-                for cell in backToPrevCoord:
-                    self.agent.set_position(cell.x, cell.y)
-
-                #Set the agent position again
-                newX, newY = self.agent.get_position()
         print("\n#############################################")
 
     def get_shortest_distance_to_recharge(self):
@@ -224,7 +208,33 @@ class Simulator:
                 push(queue, (neighborCost + h, next(c), neighbor, neighborCost, current))
 
 
+    def go_to_charging_station(self, currCell):
+        #Find the neabiest recharge point
+        nearbiestRechargePoint = self.get_nearbiest_recharge_point()
+        rechargePoint = self.envInstance.get_cell(nearbiestRechargePoint[0], nearbiestRechargePoint[1])
 
+        # Run A* algorithm and move the agent to nearbiest recharge point
+        pathToRechargePoint = self.astar(currCell, rechargePoint)
+
+        #Walk to the goal
+        for cell in pathToRechargePoint:
+            # If is a recharge point recharge the agent energy
+            if cell.get_content() == "R":
+                print("Recharging my energy at point: " + str((cell.x, cell.y)))
+                #Debug mode to check recharging
+                #self.envInstance.print_env()
+                self.agent.recharge_energy()
+            else:
+                self.agent.set_position(cell.x, cell.y)
+                self.agent.decrease_energy()
+
+        #Back to previous position
+        backToPrevCoord = pathToRechargePoint[::-1]
+        for cell in backToPrevCoord:
+            self.agent.set_position(cell.x, cell.y)
+
+        #Set the agent position again
+        newX, newY = self.agent.get_position()
 
 if __name__ == "__main__":
 

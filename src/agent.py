@@ -4,6 +4,7 @@ class Agent:
         self.energy = energy
         self.capacity = capacity
         self.originalCapacity = capacity
+        self.originalEnergy = energy
         self.energyLimit = energy
         self.x = x
         self.y = y
@@ -28,7 +29,7 @@ class Agent:
         self.capacity = self.originalCapacity
     
     def recharge_energy(self):
-        self.energy = 100
+        self.energy = self.originalEnergy
 
     def decrease_energy(self):
         self.energy -= 1
