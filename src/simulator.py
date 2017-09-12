@@ -9,7 +9,7 @@ class Simulator:
         self.envInstance = environment.Environment(10, 4, 4)
         self.envInstance.generate_env()
         self.visitedCells = [[False for i in range(self.envInstance.dimension)] for j in range(self.envInstance.dimension)]
-        self.agent = agent.Agent(0, 0, 30, 10)
+        self.agent = agent.Agent(0, 0, 100, 10)
         # self.envInstance.set_cell_content(self.agent.x, self.agent.y, "A")
 
     def print_o(self):
@@ -58,10 +58,20 @@ class Simulator:
                     goalCoord = self.get_nearbiest_trash_can_point()
                     goal = self.envInstance.get_cell(goalCoord[0], goalCoord[1])    
 
-                    aux = self.astar(currCell, goal)
-                    for a in aux:
-                        print(a.get_position())
-                    exit()               
+                    #Run A* algorithm and move the agent to nearbiest trashcan
+                    pathToTrashCan = self.astar(currCell, goal)
+                    for cell in pathToTrashCan:
+                        self.agent.set_position(cell.x, cell.y)
+                        #If is a trashcan point drop the dirt and fill the capacity
+                        if cell.get_content() == "T":
+                            self.agent.fill_capacity()
+                    
+                    #Back to previous position
+                    backToPrevCoord = pathToTrashCan[::-1]
+                    for cell in backToPrevCoord:
+                        self.agent.set_position(cell.x, cell.y)
+                    #Set the agent position again
+                    newX, newY = self.agent.get_position()            
 
             neighbors = currCell.get_neighbors()
 

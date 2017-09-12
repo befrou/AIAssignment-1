@@ -210,4 +210,4 @@ class Cell:
 if __name__ == "__main__":
     env = Environment(10, 3, 3)
     env.generate_env()
-    # env.print_env()
+    env.print_env()
